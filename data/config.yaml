@@ -19,6 +19,7 @@ facebook:
   max_pages: 3
   filter_remote_only: false
   max_jobs_per_run: 3
+  use_llm: false
 
 rate_limiting:
   min_delay: 2
