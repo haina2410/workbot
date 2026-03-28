@@ -1,0 +1,132 @@
+{
+  "name": "Discord Crawl Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "discord-crawl",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Discord Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Discord slash command payload\nconst body = $input.first().json.body;\nlet sources = [];\n\n// Extract source from command text: /crawl facebook, /crawl linkedin, or /crawl (both)\nconst content = (body.content || body.data?.options?.[0]?.value || '').trim().toLowerCase();\nif (content === 'facebook' || content === 'linkedin') {\n  sources = [content];\n}\n// empty sources = crawl all enabled\n\nreturn [{ json: { sources } }];"
+      },
+      "id": "parse-command",
+      "name": "Parse Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/crawl",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sources: $json.sources }) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "crawl-api",
+      "name": "Call Crawler API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "tableId": "={{ $env.N8N_JOBS_TABLE_ID }}",
+        "options": {}
+      },
+      "id": "get-existing",
+      "name": "Get Existing Jobs",
+      "type": "n8n-nodes-base.n8nTables",
+      "typeVersion": 1,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dedup: filter out jobs already in Data Tables\nconst crawlResult = $('Call Crawler API').first().json;\nconst existingJobs = $('Get Existing Jobs').all().map(item => item.json.job_id);\nconst existingSet = new Set(existingJobs);\n\nconst newJobs = crawlResult.jobs.filter(j => !existingSet.has(j.job_id));\n\nreturn [{ json: { newJobs, totalCrawled: crawlResult.total_jobs, totalNew: newJobs.length } }];"
+      },
+      "id": "dedup",
+      "name": "Dedup Against Data Tables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1130, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split new jobs into individual items for insert + Discord\nconst { newJobs } = $input.first().json;\nreturn newJobs.map(j => ({ json: j }));"
+      },
+      "id": "split-jobs",
+      "name": "Split Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1350, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "={{ $env.N8N_JOBS_TABLE_ID }}",
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        },
+        "options": {}
+      },
+      "id": "insert-job",
+      "name": "Insert to Data Tables",
+      "type": "n8n-nodes-base.n8nTables",
+      "typeVersion": 1,
+      "position": [1570, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ embeds: [{ title: $json.role || 'Unknown Role', description: ($json.description || '').substring(0, 300), fields: [{ name: 'Company', value: $json.company || 'N/A', inline: true }, { name: 'Location', value: $json.location || 'N/A', inline: true }, { name: 'Source', value: $json.source || 'N/A', inline: true }], color: $json.source === 'linkedin' ? 0x0A66C2 : 0x1877F2 }] }) }}"
+      },
+      "id": "discord-embed",
+      "name": "Post Discord Embed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1570, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: '✅ Crawl complete: ' + $('Dedup Against Data Tables').first().json.totalCrawled + ' found, ' + $('Dedup Against Data Tables').first().json.totalNew + ' new' }) }}"
+      },
+      "id": "discord-summary",
+      "name": "Post Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1790, 300]
+    }
+  ],
+  "connections": {
+    "Discord Webhook": { "main": [[{ "node": "Parse Command", "type": "main", "index": 0 }]] },
+    "Parse Command": { "main": [[{ "node": "Call Crawler API", "type": "main", "index": 0 }]] },
+    "Call Crawler API": { "main": [[{ "node": "Get Existing Jobs", "type": "main", "index": 0 }]] },
+    "Get Existing Jobs": { "main": [[{ "node": "Dedup Against Data Tables", "type": "main", "index": 0 }]] },
+    "Dedup Against Data Tables": { "main": [[{ "node": "Split Jobs", "type": "main", "index": 0 }]] },
+    "Split Jobs": { "main": [[{ "node": "Insert to Data Tables", "type": "main", "index": 0 }, { "node": "Post Discord Embed", "type": "main", "index": 0 }]] },
+    "Insert to Data Tables": { "main": [[{ "node": "Post Summary", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionTimeout": 700
+  }
+}

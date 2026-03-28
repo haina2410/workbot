@@ -1,0 +1,105 @@
+{
+  "name": "Scheduled Crawl",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/crawl",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"sources\": []}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "crawl-api",
+      "name": "Call Crawler API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "tableId": "={{ $env.N8N_JOBS_TABLE_ID }}",
+        "options": {}
+      },
+      "id": "get-existing",
+      "name": "Get Existing Jobs",
+      "type": "n8n-nodes-base.n8nTables",
+      "typeVersion": 1,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crawlResult = $('Call Crawler API').first().json;\nconst existingJobs = $('Get Existing Jobs').all().map(item => item.json.job_id);\nconst existingSet = new Set(existingJobs);\n\nconst newJobs = crawlResult.jobs.filter(j => !existingSet.has(j.job_id));\n\nreturn [{ json: { newJobs, totalCrawled: crawlResult.total_jobs, totalNew: newJobs.length } }];"
+      },
+      "id": "dedup",
+      "name": "Dedup Against Data Tables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { newJobs } = $input.first().json;\nif (newJobs.length === 0) return [];\nreturn newJobs.map(j => ({ json: j }));"
+      },
+      "id": "split-jobs",
+      "name": "Split Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1130, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "={{ $env.N8N_JOBS_TABLE_ID }}",
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        },
+        "options": {}
+      },
+      "id": "insert-job",
+      "name": "Insert to Data Tables",
+      "type": "n8n-nodes-base.n8nTables",
+      "typeVersion": 1,
+      "position": [1350, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ embeds: [{ title: $json.role || 'Unknown Role', description: ($json.description || '').substring(0, 300), fields: [{ name: 'Company', value: $json.company || 'N/A', inline: true }, { name: 'Location', value: $json.location || 'N/A', inline: true }, { name: 'Source', value: $json.source || 'N/A', inline: true }], color: $json.source === 'linkedin' ? 0x0A66C2 : 0x1877F2 }] }) }}"
+      },
+      "id": "discord-embed",
+      "name": "Post Discord Embed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1350, 400]
+    }
+  ],
+  "connections": {
+    "Every 6 Hours": { "main": [[{ "node": "Call Crawler API", "type": "main", "index": 0 }]] },
+    "Call Crawler API": { "main": [[{ "node": "Get Existing Jobs", "type": "main", "index": 0 }]] },
+    "Get Existing Jobs": { "main": [[{ "node": "Dedup Against Data Tables", "type": "main", "index": 0 }]] },
+    "Dedup Against Data Tables": { "main": [[{ "node": "Split Jobs", "type": "main", "index": 0 }]] },
+    "Split Jobs": { "main": [[{ "node": "Insert to Data Tables", "type": "main", "index": 0 }, { "node": "Post Discord Embed", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionTimeout": 700
+  }
+}
