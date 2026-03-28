@@ -21,7 +21,7 @@ def init_crawler_browser(headless: bool = True) -> uc.Chrome:
     options.add_argument("window-size=1200,800")
     options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")
     try:
-        driver = uc.Chrome(options=options, headless=headless)
+        driver = uc.Chrome(options=options, headless=headless, version_main=146)
         logger.debug("Undetected Chrome browser initialized for crawling.")
         return driver
     except Exception as e:
@@ -74,7 +74,7 @@ def run(data_folder: str = "data"):
     tracker = Tracker(data_path / "crawled_jobs.json")
 
     # Init crawl driver
-    crawl_driver = init_crawler_browser()
+    crawl_driver = init_crawler_browser(headless=False)
 
     all_jobs = []
     try:

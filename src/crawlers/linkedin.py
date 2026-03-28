@@ -108,8 +108,8 @@ class LinkedInCrawler(BaseCrawler):
             self.driver.get(url)
 
             try:
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, ".job-card-container, .jobs-search-results-list"))
+                WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".job-card-container, .jobs-search-results-list, .jobs-search__results-list, .scaffold-layout__list"))
                 )
             except Exception:
                 logger.warning(f"No job cards found on page {page + 1}, stopping pagination")
