@@ -1,6 +1,5 @@
 data/secrets.yaml
 data/facebook_cookies.json
-data/crawled_jobs.json
 data/output/
 __pycache__/
 *.pyc

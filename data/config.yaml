@@ -2,7 +2,7 @@ llm:
   model: "GLM-4.7"
   base_url: "https://mkp-api.fptcloud.com/v1"
 
-enabled_crawlers: ["linkedin"]
+enabled_crawlers: ["facebook"]
 
 linkedin:
   filters:
@@ -13,11 +13,12 @@ linkedin:
   max_pages: 1
 
 facebook:
-  group_urls: []
-  target_posts: 25
-  max_pages: 10
+  group_urls:
+    - "https://www.facebook.com/groups/ithotjobs.tuyendungit.vieclamcntt.susudev/?sorting_setting=CHRONOLOGICAL"
+  target_posts: 5
+  max_pages: 3
   filter_remote_only: false
-  max_jobs_per_run: 20
+  max_jobs_per_run: 3
 
 rate_limiting:
   min_delay: 2
