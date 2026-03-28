@@ -10,16 +10,39 @@ from src.logging import logger
 from src.llm import LLMClient
 from src.crawlers.base import BaseCrawler
 
+# Regex patterns that indicate a job posting (case-insensitive)
+JOB_PATTERNS = [
+    r"tuy[ểể]n\s*d[ụu]ng",        # tuyển dụng
+    r"c[ầa]n\s*tuy[ểể]n",          # cần tuyển
+    r"hiring",
+    r"we.re\s+looking\s+for",
+    r"job\s+opening",
+    r"v[ịi]\s*tr[íi]\s*:",          # vị trí:
+    r"m[ứu]c\s*l[ưu][ơo]ng",       # mức lương
+    r"y[êe]u\s*c[ầa]u\s*:",        # yêu cầu:
+    r"quy[ềe]n\s*l[ợo]i",          # quyền lợi
+    r"kinh\s*nghi[ệe]m",           # kinh nghiệm
+    r"salary",
+    r"requirements?\s*:",
+    r"apply\s+(now|here|at)",
+    r"join\s+our\s+team",
+    r"remote.*(position|role|job)",
+    r"full[- ]?time|part[- ]?time|contract",
+]
+
+_JOB_REGEX = re.compile("|".join(JOB_PATTERNS), re.IGNORECASE)
+
 
 class FacebookCrawler(BaseCrawler):
     """Crawls Facebook group posts via www.facebook.com with scroll-based pagination."""
 
     BASE_URL = "https://www.facebook.com"
 
-    def __init__(self, driver, config: dict, cookies: list, llm: LLMClient):
+    def __init__(self, driver, config: dict, cookies: list, llm: LLMClient | None = None):
         super().__init__(driver, config)
         self.cookies = cookies
         self.llm = llm
+        self.use_llm = config.get("use_llm", True)
         self._post_cache: dict[str, str] = {}
 
     @staticmethod
@@ -29,6 +52,13 @@ class FacebookCrawler(BaseCrawler):
     @staticmethod
     def _generate_post_id(text: str) -> str:
         return "facebook_" + hashlib.md5(text.encode()).hexdigest()[:16]
+
+    @staticmethod
+    def _regex_filter_job_posts(posts: list[dict]) -> list[dict]:
+        """Fast regex pre-filter: keep posts that match job-related patterns."""
+        matched = [p for p in posts if _JOB_REGEX.search(p["text"])]
+        logger.info(f"Regex filter: {len(matched)}/{len(posts)} posts match job patterns")
+        return matched
 
     def login(self) -> None:
         logger.info("Logging into Facebook via cookies...")
@@ -72,12 +102,17 @@ class FacebookCrawler(BaseCrawler):
         if not all_posts:
             return []
 
-        job_posts = self._llm_classify_job_posts(all_posts)
-        logger.info(f"LLM classified {len(job_posts)}/{len(all_posts)} posts as job listings")
+        # Step 1: regex pre-filter (always runs)
+        job_posts = self._regex_filter_job_posts(all_posts)
 
-        if filter_remote and job_posts:
-            job_posts = self._llm_filter_remote(job_posts)
-            logger.info(f"After remote filter: {len(job_posts)} posts")
+        # Step 2: LLM classification (optional)
+        if self.use_llm and self.llm and job_posts:
+            job_posts = self._llm_classify_job_posts(job_posts)
+            logger.info(f"LLM classified {len(job_posts)} posts as job listings")
+
+            if filter_remote and job_posts:
+                job_posts = self._llm_filter_remote(job_posts)
+                logger.info(f"After remote filter: {len(job_posts)} posts")
 
         results = []
         for post in job_posts:
@@ -98,15 +133,22 @@ class FacebookCrawler(BaseCrawler):
             logger.warning(f"No cached post text for {job_id}")
             return Job(source="facebook")
 
-        fields = self._llm_extract_job_fields(post_text)
-
-        return Job(
-            role=fields.get("role", ""),
-            company=fields.get("company", ""),
-            location=fields.get("location", ""),
-            description=fields.get("description", post_text),
-            source="facebook",
-        )
+        if self.use_llm and self.llm:
+            fields = self._llm_extract_job_fields(post_text)
+            return Job(
+                role=fields.get("role", ""),
+                company=fields.get("company", ""),
+                location=fields.get("location", ""),
+                description=fields.get("description", post_text),
+                source="facebook",
+                raw_post=post_text,
+            )
+        else:
+            return Job(
+                description=post_text,
+                source="facebook",
+                raw_post=post_text,
+            )
 
     def crawl(self, filters: dict) -> list[Job]:
         """Override to pass job_id as url for scrape_job lookup."""

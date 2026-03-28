@@ -22,6 +22,7 @@ class JobOut(BaseModel):
     link: str
     description: str
     source: str
+    raw_post: str
 
 
 class CrawlResponse(BaseModel):

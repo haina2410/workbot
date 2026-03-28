@@ -62,6 +62,7 @@ def _jobs_to_dict(jobs: list, crawled_at: datetime | None = None) -> dict:
                 "link": j.link,
                 "description": j.description,
                 "source": j.source,
+                "raw_post": j.raw_post,
             }
             for j in jobs
         ],
@@ -140,11 +141,14 @@ def crawl_jobs(data_folder: str = "data", sources: list[str] | None = None) -> l
                     "max_delay": config.rate_limiting.get("max_delay", 5),
                 }
 
-                llm = LLMClient(
-                    api_key=llm_api_key,
-                    model=config.llm.get("model", "gpt-4o-mini"),
-                    base_url=config.llm.get("base_url"),
-                )
+                use_llm = fb_config.get("use_llm", True)
+                llm = None
+                if use_llm:
+                    llm = LLMClient(
+                        api_key=llm_api_key,
+                        model=config.llm.get("model", "gpt-4o-mini"),
+                        base_url=config.llm.get("base_url"),
+                    )
 
                 fb_driver = init_crawler_browser(headless=False)
                 try:

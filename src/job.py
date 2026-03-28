@@ -9,3 +9,4 @@ class Job:
     link: str = ""
     description: str = ""
     source: str = ""
+    raw_post: str = ""
