@@ -13,27 +13,24 @@ from src.crawlers.config import CrawlerConfig
 from src.crawlers.linkedin import LinkedInCrawler
 from src.crawlers.facebook import FacebookCrawler
 
-# Browserless config — override via env vars
-BROWSERLESS_URL = os.environ.get("BROWSERLESS_URL", "http://localhost:3000")
-BROWSERLESS_TOKEN = os.environ.get("BROWSERLESS_TOKEN", "")
+# Selenium Remote WebDriver URL — override via SELENIUM_URL env var
+SELENIUM_URL = os.environ.get("SELENIUM_URL", "http://localhost:4444")
 
 
 def init_crawler_browser() -> webdriver.Remote:
     options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("window-size=1920,1080")
-    if BROWSERLESS_TOKEN:
-        options.set_capability("browserless:token", BROWSERLESS_TOKEN)
+    options.add_argument("window-size=1200,800")
     try:
         driver = webdriver.Remote(
-            command_executor=f"{BROWSERLESS_URL}/webdriver",
+            command_executor=SELENIUM_URL,
             options=options,
         )
-        logger.debug(f"Remote browser connected via {BROWSERLESS_URL}")
+        logger.debug(f"Remote browser connected via {SELENIUM_URL}")
         return driver
     except Exception as e:
-        logger.error(f"Failed to connect to remote browser at {BROWSERLESS_URL}: {e}")
+        logger.error(f"Failed to connect to remote browser at {SELENIUM_URL}: {e}")
         raise RuntimeError(f"Failed to connect to remote browser: {e}")
 
 
@@ -159,10 +156,11 @@ def crawl_jobs(data_folder: str = "data", sources: list[str] | None = None) -> l
                         base_url=config.llm.get("base_url"),
                     )
 
-                fb_driver = init_crawler_browser()
                 try:
+                    # Clear cookies from previous crawler before Facebook login
+                    crawl_driver.delete_all_cookies()
                     crawler = FacebookCrawler(
-                        fb_driver, crawler_config,
+                        crawl_driver, crawler_config,
                         cookies=fb_cookies, llm=llm,
                     )
                     crawler.login()
@@ -171,8 +169,6 @@ def crawl_jobs(data_folder: str = "data", sources: list[str] | None = None) -> l
                     logger.info(f"Facebook: found {len(jobs)} jobs")
                 except Exception as e:
                     logger.error(f"Facebook crawler failed: {e}")
-                finally:
-                    fb_driver.quit()
             else:
                 logger.warning(f"Unknown crawler: {crawler_name}, skipping")
     finally:

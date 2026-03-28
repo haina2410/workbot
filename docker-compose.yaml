@@ -7,20 +7,19 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - BROWSERLESS_URL=http://browserless:3000
-      - BROWSERLESS_TOKEN=${BROWSERLESS_TOKEN:-}
+      - SELENIUM_URL=http://chrome:4444
     depends_on:
-      - browserless
+      - chrome
     networks:
       - n8n-net
 
-  browserless:
-    image: ghcr.io/browserless/chromium
-    container_name: browserless
+  chrome:
+    image: selenium/standalone-chrome
+    container_name: chrome
     ports:
-      - "3000:3000"
-    environment:
-      - TOKEN=${BROWSERLESS_TOKEN:-}
+      - "4444:4444"
+      - "7900:7900"  # noVNC — view browser at http://localhost:7900
+    shm_size: "2g"
     networks:
       - n8n-net
 
