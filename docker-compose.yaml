@@ -1,0 +1,14 @@
+services:
+  crawler:
+    build: .
+    container_name: jobs-crawler
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - n8n-net
+
+networks:
+  n8n-net:
+    external: true
