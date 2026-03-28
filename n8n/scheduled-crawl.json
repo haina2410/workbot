@@ -33,7 +33,7 @@
     {
       "parameters": {
         "operation": "select",
-        "tableId": "={{ $env.N8N_JOBS_TABLE_ID }}",
+        "tableId": "CHANGE_ME",
         "options": {}
       },
       "id": "get-existing",
@@ -65,7 +65,7 @@
     {
       "parameters": {
         "operation": "insert",
-        "tableId": "={{ $env.N8N_JOBS_TABLE_ID }}",
+        "tableId": "CHANGE_ME",
         "columns": {
           "mappingMode": "autoMapInputData"
         },
@@ -80,7 +80,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "url": "CHANGE_ME",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ embeds: [{ title: $json.role || 'Unknown Role', description: ($json.description || '').substring(0, 300), fields: [{ name: 'Company', value: $json.company || 'N/A', inline: true }, { name: 'Location', value: $json.location || 'N/A', inline: true }, { name: 'Source', value: $json.source || 'N/A', inline: true }], color: $json.source === 'linkedin' ? 0x0A66C2 : 0x1877F2 }] }) }}"
