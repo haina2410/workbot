@@ -3,14 +3,12 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-import redis
 import undetected_chromedriver as uc
 import yaml
 
 from src.logging import logger
 from src.llm import LLMClient
 from src.crawlers.config import CrawlerConfig
-from src.crawlers.tracker import Tracker
 from src.crawlers.linkedin import LinkedInCrawler
 from src.crawlers.facebook import FacebookCrawler
 
@@ -35,18 +33,29 @@ def _load_secrets(secrets_path: Path) -> dict:
         return yaml.safe_load(f)
 
 
-def _write_run_output(jobs: list, output_dir: Path):
+def _write_run_output(jobs: list, output_dir: Path) -> Path:
     """Write per-run JSON output file."""
     output_dir.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc)
     filename = f"jobs_{now.strftime('%Y-%m-%d_%H%M%S')}.json"
     output_path = output_dir / filename
 
-    output_data = {
-        "crawled_at": now.isoformat(),
+    output_data = _jobs_to_dict(jobs, now)
+    output_path.write_text(json.dumps(output_data, indent=2, ensure_ascii=False))
+    logger.info(f"Wrote {len(jobs)} jobs to {output_path}")
+    return output_path
+
+
+def _jobs_to_dict(jobs: list, crawled_at: datetime | None = None) -> dict:
+    """Convert jobs list to serializable dict."""
+    if crawled_at is None:
+        crawled_at = datetime.now(timezone.utc)
+    return {
+        "crawled_at": crawled_at.isoformat(),
         "total_jobs": len(jobs),
         "jobs": [
             {
+                "job_id": _generate_job_id(j),
                 "role": j.role,
                 "company": j.company,
                 "location": j.location,
@@ -58,36 +67,37 @@ def _write_run_output(jobs: list, output_dir: Path):
         ],
     }
 
-    output_path.write_text(json.dumps(output_data, indent=2, ensure_ascii=False))
-    logger.info(f"Wrote {len(jobs)} jobs to {output_path}")
-    return output_path
+
+def _generate_job_id(job) -> str:
+    """Generate a stable ID for a job."""
+    import hashlib
+    key = f"{job.source}_{job.role}_{job.company}_{job.description[:100]}"
+    return f"{job.source}_{hashlib.md5(key.encode()).hexdigest()[:16]}"
 
 
-def run(data_folder: str = "data"):
+def crawl_jobs(data_folder: str = "data", sources: list[str] | None = None) -> list:
+    """Run crawlers and return list of Job objects.
+
+    Args:
+        data_folder: Path to data directory with config.yaml and secrets.yaml.
+        sources: List of crawler names to run (e.g. ["facebook", "linkedin"]).
+                 None or empty = use enabled_crawlers from config.
+    """
+    from src.job import Job
+
     data_path = Path(data_folder)
 
-    # Load configs
     config = CrawlerConfig.load(data_path / "config.yaml")
     secrets = _load_secrets(data_path / "secrets.yaml")
     llm_api_key = secrets.get("llm_api_key", "")
 
-    # Init Redis tracker
-    redis_config = secrets.get("redis", {})
-    redis_client = redis.Redis(
-        host=redis_config.get("host", "localhost"),
-        port=redis_config.get("port", 6379),
-        db=redis_config.get("db", 0),
-        password=redis_config.get("password"),
-        decode_responses=True,
-    )
-    tracker = Tracker(redis_client)
+    crawlers_to_run = sources if sources else config.enabled_crawlers
 
-    # Init crawl driver
     crawl_driver = init_crawler_browser(headless=False)
 
-    all_jobs = []
+    all_jobs: list[Job] = []
     try:
-        for crawler_name in config.enabled_crawlers:
+        for crawler_name in crawlers_to_run:
             if crawler_name == "linkedin":
                 li_cookies = secrets.get("linkedin_cookies", {})
                 if not li_cookies.get("li_at"):
@@ -99,13 +109,13 @@ def run(data_folder: str = "data"):
                     "min_delay": config.rate_limiting.get("min_delay", 2),
                     "max_delay": config.rate_limiting.get("max_delay", 5),
                 }
-                crawler = LinkedInCrawler(crawl_driver, tracker, crawler_config, cookies=li_cookies)
+                crawler = LinkedInCrawler(crawl_driver, crawler_config, cookies=li_cookies)
 
                 try:
                     crawler.login()
                     jobs = crawler.crawl(config.linkedin.get("filters", {}))
                     all_jobs.extend(jobs)
-                    logger.info(f"LinkedIn: found {len(jobs)} new jobs")
+                    logger.info(f"LinkedIn: found {len(jobs)} jobs")
                 except Exception as e:
                     logger.error(f"LinkedIn crawler failed: {e}")
 
@@ -130,7 +140,6 @@ def run(data_folder: str = "data"):
                     "max_delay": config.rate_limiting.get("max_delay", 5),
                 }
 
-                # Create LLM client for Facebook's post classification
                 llm = LLMClient(
                     api_key=llm_api_key,
                     model=config.llm.get("model", "gpt-4o-mini"),
@@ -140,13 +149,13 @@ def run(data_folder: str = "data"):
                 fb_driver = init_crawler_browser(headless=False)
                 try:
                     crawler = FacebookCrawler(
-                        fb_driver, tracker, crawler_config,
+                        fb_driver, crawler_config,
                         cookies=fb_cookies, llm=llm,
                     )
                     crawler.login()
                     jobs = crawler.crawl(fb_config)
                     all_jobs.extend(jobs)
-                    logger.info(f"Facebook: found {len(jobs)} new jobs")
+                    logger.info(f"Facebook: found {len(jobs)} jobs")
                 except Exception as e:
                     logger.error(f"Facebook crawler failed: {e}")
                 finally:
@@ -156,13 +165,19 @@ def run(data_folder: str = "data"):
     finally:
         crawl_driver.quit()
 
-    if not all_jobs:
-        logger.info("No new jobs found. Done.")
+    return all_jobs
+
+
+def run(data_folder: str = "data"):
+    """CLI entry point: crawl and write per-run JSON output."""
+    jobs = crawl_jobs(data_folder)
+
+    if not jobs:
+        logger.info("No jobs found. Done.")
         return
 
-    # Write per-run output
-    output_path = _write_run_output(all_jobs, data_path / "output")
-    logger.info(f"Done. {len(all_jobs)} jobs crawled and saved to {output_path}")
+    output_path = _write_run_output(jobs, Path(data_folder) / "output")
+    logger.info(f"Done. {len(jobs)} jobs crawled and saved to {output_path}")
 
 
 if __name__ == "__main__":

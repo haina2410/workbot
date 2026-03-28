@@ -4,15 +4,13 @@ from time import sleep
 
 from src.job import Job
 from src.logging import logger
-from src.crawlers.tracker import Tracker
 
 
 class BaseCrawler(ABC):
     """Abstract base class for job crawlers."""
 
-    def __init__(self, driver, tracker: Tracker, config: dict):
+    def __init__(self, driver, config: dict):
         self.driver = driver
-        self.tracker = tracker
         self.config = config
 
     @abstractmethod
@@ -28,37 +26,24 @@ class BaseCrawler(ABC):
         """Scrape full job details from a URL. Return populated Job."""
 
     def crawl(self, filters: dict) -> list[Job]:
-        """Template method: search -> dedup -> scrape."""
+        """Template method: search -> scrape all with rate limiting."""
         results = self.search_jobs(filters)
-        new_results = self.tracker.filter_unseen(results)
         max_jobs = self.config.get("max_jobs_per_run", 20)
-        new_results = new_results[:max_jobs]
-        logger.info(f"Found {len(results)} jobs, {len(new_results)} new (limit {max_jobs})")
+        results = results[:max_jobs]
+        logger.info(f"Found {len(results)} jobs (limit {max_jobs})")
 
         min_delay = self.config.get("min_delay", 2)
         max_delay = self.config.get("max_delay", 5)
         jobs = []
-        for i, result in enumerate(new_results):
-            logger.info(f"Scraping job {i+1}/{len(new_results)}: {result.get('role', 'unknown')}")
-            job = None
+        for i, result in enumerate(results):
+            logger.info(f"Scraping job {i+1}/{len(results)}: {result.get('role', 'unknown')}")
             try:
                 job = self.scrape_job(result["url"])
                 jobs.append(job)
             except Exception as e:
                 logger.error(f"Failed to scrape {result['url']}: {e}")
-            self.tracker.mark_seen(
-                result["id"], result["url"],
-                role=job.role if job else result.get("role", ""),
-                company=job.company if job else result.get("company", ""),
-                location=job.location if job else "",
-                description=job.description if job else "",
-                source=self._source_name(),
-            )
-            if i < len(new_results) - 1:
+            if i < len(results) - 1:
                 delay = uniform(min_delay, max_delay)
                 logger.debug(f"Waiting {delay:.1f}s before next request")
                 sleep(delay)
         return jobs
-
-    def _source_name(self) -> str:
-        return self.__class__.__name__.replace("Crawler", "").lower()

@@ -9,7 +9,6 @@ from src.job import Job
 from src.logging import logger
 from src.llm import LLMClient
 from src.crawlers.base import BaseCrawler
-from src.crawlers.tracker import Tracker
 
 
 class FacebookCrawler(BaseCrawler):
@@ -17,8 +16,8 @@ class FacebookCrawler(BaseCrawler):
 
     BASE_URL = "https://www.facebook.com"
 
-    def __init__(self, driver, tracker: Tracker, config: dict, cookies: list, llm: LLMClient):
-        super().__init__(driver, tracker, config)
+    def __init__(self, driver, config: dict, cookies: list, llm: LLMClient):
+        super().__init__(driver, config)
         self.cookies = cookies
         self.llm = llm
         self._post_cache: dict[str, str] = {}
@@ -112,28 +111,18 @@ class FacebookCrawler(BaseCrawler):
     def crawl(self, filters: dict) -> list[Job]:
         """Override to pass job_id as url for scrape_job lookup."""
         results = self.search_jobs(filters)
-        new_results = self.tracker.filter_unseen(results)
         max_jobs = self.config.get("max_jobs_per_run", 20)
-        new_results = new_results[:max_jobs]
-        logger.info(f"Found {len(results)} jobs, {len(new_results)} new (limit {max_jobs})")
+        results = results[:max_jobs]
+        logger.info(f"Found {len(results)} jobs (limit {max_jobs})")
 
         jobs = []
-        for i, result in enumerate(new_results):
-            logger.info(f"Extracting job {i+1}/{len(new_results)}")
-            job = None
+        for i, result in enumerate(results):
+            logger.info(f"Extracting job {i+1}/{len(results)}")
             try:
                 job = self.scrape_job(result["id"])
                 jobs.append(job)
             except Exception as e:
                 logger.error(f"Failed to extract job from post: {e}")
-            self.tracker.mark_seen(
-                result["id"], result["url"],
-                role=job.role if job else "",
-                company=job.company if job else "",
-                location=job.location if job else "",
-                description=job.description if job else "",
-                source="facebook",
-            )
         return jobs
 
     def _crawl_group_posts(self, group_url: str, target_posts: int, max_scrolls: int) -> list[dict]:

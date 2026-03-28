@@ -9,7 +9,6 @@ from src.job import Job
 from src.logging import logger
 from src.crawlers.base import BaseCrawler
 from src.crawlers.config import CrawlerConfig
-from src.crawlers.tracker import Tracker
 
 
 class LinkedInCrawler(BaseCrawler):
@@ -17,8 +16,8 @@ class LinkedInCrawler(BaseCrawler):
 
     JOBS_PER_PAGE = 25
 
-    def __init__(self, driver, tracker: Tracker, config: dict, cookies: dict):
-        super().__init__(driver, tracker, config)
+    def __init__(self, driver, config: dict, cookies: dict):
+        super().__init__(driver, config)
         self.cookies = cookies
 
     def login(self) -> None:
