@@ -13,24 +13,27 @@ from src.crawlers.config import CrawlerConfig
 from src.crawlers.linkedin import LinkedInCrawler
 from src.crawlers.facebook import FacebookCrawler
 
-# Browserless WebSocket endpoint — override via BROWSER_WS_ENDPOINT env var
-BROWSER_WS_ENDPOINT = os.environ.get("BROWSER_WS_ENDPOINT", "ws://localhost:3000")
+# Browserless config — override via env vars
+BROWSERLESS_URL = os.environ.get("BROWSERLESS_URL", "http://localhost:3000")
+BROWSERLESS_TOKEN = os.environ.get("BROWSERLESS_TOKEN", "")
 
 
 def init_crawler_browser() -> webdriver.Remote:
     options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("window-size=1200,800")
+    options.add_argument("window-size=1920,1080")
+    if BROWSERLESS_TOKEN:
+        options.set_capability("browserless:token", BROWSERLESS_TOKEN)
     try:
         driver = webdriver.Remote(
-            command_executor=f"{BROWSER_WS_ENDPOINT}/webdriver",
+            command_executor=f"{BROWSERLESS_URL}/webdriver",
             options=options,
         )
-        logger.debug(f"Remote browser connected via {BROWSER_WS_ENDPOINT}")
+        logger.debug(f"Remote browser connected via {BROWSERLESS_URL}")
         return driver
     except Exception as e:
-        logger.error(f"Failed to connect to remote browser at {BROWSER_WS_ENDPOINT}: {e}")
+        logger.error(f"Failed to connect to remote browser at {BROWSERLESS_URL}: {e}")
         raise RuntimeError(f"Failed to connect to remote browser: {e}")
 
 
