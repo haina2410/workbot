@@ -43,7 +43,7 @@ class FacebookCrawler(BaseCrawler):
         self.cookies = cookies
         self.llm = llm
         self.use_llm = config.get("use_llm", True)
-        self._post_cache: dict[str, str] = {}
+        self._post_cache: dict[str, dict] = {}  # {post_id: {"text": ..., "url": ...}}
 
     @staticmethod
     def _normalize_url(url: str) -> str:
@@ -117,10 +117,11 @@ class FacebookCrawler(BaseCrawler):
         results = []
         for post in job_posts:
             post_id = self._generate_post_id(post["text"])
-            self._post_cache[post_id] = post["text"]
+            post_url = post.get("post_url", "") or post.get("group_url", "")
+            self._post_cache[post_id] = {"text": post["text"], "url": post_url}
             results.append({
                 "id": post_id,
-                "url": post.get("group_url", ""),
+                "url": post_url,
                 "role": "",
                 "company": "",
             })
@@ -128,10 +129,13 @@ class FacebookCrawler(BaseCrawler):
 
     def scrape_job(self, job_url: str) -> Job:
         job_id = job_url
-        post_text = self._post_cache.get(job_id, "")
-        if not post_text:
+        cached = self._post_cache.get(job_id)
+        if not cached:
             logger.warning(f"No cached post text for {job_id}")
             return Job(source="facebook")
+
+        post_text = cached["text"]
+        link = cached["url"]
 
         if self.use_llm and self.llm:
             fields = self._llm_extract_job_fields(post_text)
@@ -140,12 +144,14 @@ class FacebookCrawler(BaseCrawler):
                 company=fields.get("company", ""),
                 location=fields.get("location", ""),
                 description=fields.get("description", post_text),
+                link=link,
                 source="facebook",
                 raw_post=post_text,
             )
         else:
             return Job(
                 description=post_text,
+                link=link,
                 source="facebook",
                 raw_post=post_text,
             )
@@ -200,7 +206,8 @@ class FacebookCrawler(BaseCrawler):
                     if text_key in seen_texts:
                         continue
                     seen_texts.add(text_key)
-                    posts.append({"text": text, "group_url": group_url})
+                    post_url = self._extract_post_url(el)
+                    posts.append({"text": text, "group_url": group_url, "post_url": post_url})
                     new_on_scroll += 1
                 except Exception:
                     continue
@@ -224,6 +231,27 @@ class FacebookCrawler(BaseCrawler):
             self._expand_all_posts()
 
         return posts[:target_posts]
+
+    def _extract_post_url(self, post_element) -> str:
+        """Extract post permalink from the timestamp link near the post."""
+        try:
+            # Walk up to the post container (typically 5-8 levels up)
+            container = post_element
+            for _ in range(8):
+                container = container.find_element(By.XPATH, "..")
+                # Look for timestamp links: href contains /posts/ or /permalink/
+                links = container.find_elements(
+                    By.CSS_SELECTOR,
+                    'a[href*="/posts/"], a[href*="/permalink/"], a[href*="story_fbid"]'
+                )
+                if links:
+                    href = links[0].get_attribute("href")
+                    if href:
+                        # Clean tracking params, keep the core URL
+                        return href.split("?")[0]
+        except Exception:
+            pass
+        return ""
 
     def _expand_all_posts(self):
         try:
