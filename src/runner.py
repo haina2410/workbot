@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import redis
 import undetected_chromedriver as uc
 import yaml
 
@@ -70,8 +71,16 @@ def run(data_folder: str = "data"):
     secrets = _load_secrets(data_path / "secrets.yaml")
     llm_api_key = secrets.get("llm_api_key", "")
 
-    # Init tracker
-    tracker = Tracker(data_path / "crawled_jobs.json")
+    # Init Redis tracker
+    redis_config = secrets.get("redis", {})
+    redis_client = redis.Redis(
+        host=redis_config.get("host", "localhost"),
+        port=redis_config.get("port", 6379),
+        db=redis_config.get("db", 0),
+        password=redis_config.get("password"),
+        decode_responses=True,
+    )
+    tracker = Tracker(redis_client)
 
     # Init crawl driver
     crawl_driver = init_crawler_browser(headless=False)
