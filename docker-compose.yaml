@@ -6,6 +6,18 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+    environment:
+      - BROWSER_WS_ENDPOINT=ws://browserless:3000
+    depends_on:
+      - browserless
+    networks:
+      - n8n-net
+
+  browserless:
+    image: ghcr.io/browserless/chromium
+    container_name: browserless
+    ports:
+      - "3000:3000"
     networks:
       - n8n-net
 

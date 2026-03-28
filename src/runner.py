@@ -1,9 +1,10 @@
 import json
-import tempfile
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import yaml
 
 from src.logging import logger
@@ -12,20 +13,25 @@ from src.crawlers.config import CrawlerConfig
 from src.crawlers.linkedin import LinkedInCrawler
 from src.crawlers.facebook import FacebookCrawler
 
+# Browserless WebSocket endpoint — override via BROWSER_WS_ENDPOINT env var
+BROWSER_WS_ENDPOINT = os.environ.get("BROWSER_WS_ENDPOINT", "ws://localhost:3000")
 
-def init_crawler_browser(headless: bool = True) -> uc.Chrome:
-    options = uc.ChromeOptions()
+
+def init_crawler_browser() -> webdriver.Remote:
+    options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("window-size=1200,800")
-    options.add_argument(f"--user-data-dir={tempfile.mkdtemp()}")
     try:
-        driver = uc.Chrome(options=options, headless=headless, version_main=146)
-        logger.debug("Undetected Chrome browser initialized for crawling.")
+        driver = webdriver.Remote(
+            command_executor=f"{BROWSER_WS_ENDPOINT}/webdriver",
+            options=options,
+        )
+        logger.debug(f"Remote browser connected via {BROWSER_WS_ENDPOINT}")
         return driver
     except Exception as e:
-        logger.error(f"Failed to initialize crawler browser: {e}")
-        raise RuntimeError(f"Failed to initialize crawler browser: {e}")
+        logger.error(f"Failed to connect to remote browser at {BROWSER_WS_ENDPOINT}: {e}")
+        raise RuntimeError(f"Failed to connect to remote browser: {e}")
 
 
 def _load_secrets(secrets_path: Path) -> dict:
@@ -94,7 +100,7 @@ def crawl_jobs(data_folder: str = "data", sources: list[str] | None = None) -> l
 
     crawlers_to_run = sources if sources else config.enabled_crawlers
 
-    crawl_driver = init_crawler_browser(headless=False)
+    crawl_driver = init_crawler_browser()
 
     all_jobs: list[Job] = []
     try:
@@ -150,7 +156,7 @@ def crawl_jobs(data_folder: str = "data", sources: list[str] | None = None) -> l
                         base_url=config.llm.get("base_url"),
                     )
 
-                fb_driver = init_crawler_browser(headless=False)
+                fb_driver = init_crawler_browser()
                 try:
                     crawler = FacebookCrawler(
                         fb_driver, crawler_config,
