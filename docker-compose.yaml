@@ -16,9 +16,8 @@ services:
   chrome:
     image: selenium/standalone-chrome
     container_name: chrome
-    ports:
-      - "4444:4444"
-      - "7900:7900"  # noVNC — view browser at http://localhost:7900
+    expose:
+      - 4444
     shm_size: "2g"
     networks:
       - n8n-net
