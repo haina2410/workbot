@@ -9,16 +9,15 @@ linkedin:
     keywords: "Software Engineer"
     location: "Vietnam"
     date_posted: "past_week"
-  max_jobs_per_run: 3
-  max_pages: 1
+  max_jobs_per_run: 20
+  max_pages: 5
 
 facebook:
   group_urls:
     - "https://www.facebook.com/groups/ithotjobs.tuyendungit.vieclamcntt.susudev/?sorting_setting=CHRONOLOGICAL"
-  target_posts: 5
-  max_pages: 3
+  target_posts: 10
   filter_remote_only: false
-  max_jobs_per_run: 3
+  max_jobs_per_run: 10
   use_llm: false
 
 rate_limiting:
