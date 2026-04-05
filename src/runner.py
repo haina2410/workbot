@@ -13,25 +13,36 @@ from src.crawlers.config import CrawlerConfig
 from src.crawlers.linkedin import LinkedInCrawler
 from src.crawlers.facebook import FacebookCrawler
 
-# Selenium Remote WebDriver URL — override via SELENIUM_URL env var
-SELENIUM_URL = os.environ.get("SELENIUM_URL", "http://localhost:4444")
+# Selenium Remote WebDriver URL — set to use remote browser (Docker)
+# Leave unset or empty for local Chrome (macOS dev)
+SELENIUM_URL = os.environ.get("SELENIUM_URL", "")
 
 
-def init_crawler_browser() -> webdriver.Remote:
+def init_crawler_browser():
     options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("window-size=1200,800")
-    try:
-        driver = webdriver.Remote(
-            command_executor=SELENIUM_URL,
-            options=options,
-        )
-        logger.debug(f"Remote browser connected via {SELENIUM_URL}")
-        return driver
-    except Exception as e:
-        logger.error(f"Failed to connect to remote browser at {SELENIUM_URL}: {e}")
-        raise RuntimeError(f"Failed to connect to remote browser: {e}")
+
+    if SELENIUM_URL:
+        try:
+            driver = webdriver.Remote(
+                command_executor=SELENIUM_URL,
+                options=options,
+            )
+            logger.debug(f"Remote browser connected via {SELENIUM_URL}")
+            return driver
+        except Exception as e:
+            logger.error(f"Failed to connect to remote browser at {SELENIUM_URL}: {e}")
+            raise RuntimeError(f"Failed to connect to remote browser: {e}")
+    else:
+        try:
+            driver = webdriver.Chrome(options=options)
+            logger.debug("Local Chrome browser initialized")
+            return driver
+        except Exception as e:
+            logger.error(f"Failed to start local Chrome: {e}")
+            raise RuntimeError(f"Failed to start local Chrome: {e}")
 
 
 def _load_secrets(secrets_path: Path) -> dict:
