@@ -32,12 +32,18 @@ JOB_PATTERNS = [
     r"full[- ]?time|part[- ]?time|contract",
 ]
 
-# Anti patterns
+# Anti patterns — posts matching these are excluded even if they match JOB_PATTERNS
 ANTI_PATTERNS = [
-    r"tester",
+    r"\btester\b",
+    r"\bQA\b",
+    r"\bquality\s*assurance\b",
+    r"\bintern(ship)?\b",
+    r"\bth[ựu]c\s*t[ậa]p\b",         # thực tập (internship)
+    r"\bfreelance\b",
 ]
 
 _JOB_REGEX = re.compile("|".join(JOB_PATTERNS), re.IGNORECASE)
+_ANTI_REGEX = re.compile("|".join(ANTI_PATTERNS), re.IGNORECASE)
 
 
 class FacebookCrawler(BaseCrawler):
@@ -62,10 +68,12 @@ class FacebookCrawler(BaseCrawler):
 
     @staticmethod
     def _regex_filter_job_posts(posts: list[dict]) -> list[dict]:
-        """Fast regex pre-filter: keep posts that match job-related patterns."""
+        """Fast regex pre-filter: keep posts matching job patterns, reject anti-patterns."""
         matched = [p for p in posts if _JOB_REGEX.search(p["text"])]
-        logger.info(f"Regex filter: {len(matched)}/{len(posts)} posts match job patterns")
-        return matched
+        filtered = [p for p in matched if not _ANTI_REGEX.search(p["text"])]
+        excluded = len(matched) - len(filtered)
+        logger.info(f"Regex filter: {len(matched)}/{len(posts)} match job patterns, {excluded} excluded by anti-patterns, {len(filtered)} kept")
+        return filtered
 
     def login(self) -> None:
         logger.info("Logging into Facebook via cookies...")
