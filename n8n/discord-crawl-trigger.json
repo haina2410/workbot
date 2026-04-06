@@ -3,147 +3,6 @@
   "nodes": [
     {
       "parameters": {
-        "operation": "upsert",
-        "dataTableId": {
-          "__rl": true,
-          "value": "3USJhhy60dNv4YfI",
-          "mode": "list",
-          "cachedResultName": "crawled_jobs",
-          "cachedResultUrl": "/projects/hB4HgQDKYavsOvHC/datatables/3USJhhy60dNv4YfI"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "job_id": "={{ $json.job_id }}",
-            "role": "={{ $json.role }}",
-            "company": "={{ $json.company }}",
-            "location": "={{ $json.location }}",
-            "link": "={{ $json.link }}",
-            "description": "={{ $json.description }}",
-            "source": "={{ $json.source }}",
-            "raw_post": "={{ $json.raw_post }}",
-            "status": "none",
-            "crawled_at": "={{ $json.crawled_at }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "job_id",
-              "displayName": "job_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "role",
-              "displayName": "role",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "company",
-              "displayName": "company",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "location",
-              "displayName": "location",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "link",
-              "displayName": "link",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "description",
-              "displayName": "description",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "source",
-              "displayName": "source",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "raw_post",
-              "displayName": "raw_post",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "crawled_at",
-              "displayName": "crawled_at",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "dateTime",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "status",
-              "displayName": "status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        -240,
-        96
-      ],
-      "id": "bf7d8d15-d7b1-48eb-a3c3-ca4617e7dac2",
-      "name": "Upsert row(s)"
-    },
-    {
-      "parameters": {
         "operation": "get",
         "dataTableId": {
           "__rl": true,
@@ -157,8 +16,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        -1104,
-        96
+        -1088,
+        0
       ],
       "id": "d56ba365-453e-4f07-8639-b3fbee5c7ee4",
       "name": "Get row(s)",
@@ -166,15 +25,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// Dedup: filter out jobs already in Data Tables\nconst crawlResult = $('Call Crawler API').first().json;\nconst existingJobs = $('Get row(s)').all().map(item => item.json.job_id);\nexistingJobs.push(...crawlResult.jobs.map(item => item.job_id))\nconst existingSet = new Set(existingJobs);\n\nconst newJobs = crawlResult.jobs.filter(j => !existingSet.has(j.job_id));\nnewJobs.forEach(i => i[\"crawled_at\"] = crawlResult.crawled_at)\nreturn [{ json: { newJobs, totalCrawled: crawlResult.total_jobs, totalNew: newJobs.length, crawled_at: crawlResult.crawled_at } }];"
+        "jsCode": "// Dedup: filter out jobs already in Data Tables\nconst crawlResult = $('Call Crawler API').first().json;\nconst existingJobs = $('Get row(s)').all().map(item => item.json.job_id);\nconst existingSet = new Set(existingJobs);\n\nconst newJobs = crawlResult.jobs.filter(j => !existingSet.has(j.job_id));\nnewJobs.forEach(i => i[\"crawled_at\"] = crawlResult.crawled_at)\nreturn [{ json: { newJobs, totalCrawled: crawlResult.total_jobs, totalNew: newJobs.length, crawled_at: crawlResult.crawled_at } }];"
       },
       "id": "2f53fdd3-db38-4b0b-83d2-2c3602d9ecf9",
       "name": "Dedup Against Data Tables",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -896,
-        96
+        -864,
+        0
       ],
       "alwaysOutputData": false
     },
@@ -200,12 +59,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -1328,
-        96
+        -1312,
+        0
       ],
       "alwaysOutputData": true,
       "retryOnFail": false,
-      "notesInFlow": false
+      "notesInFlow": false,
+      "executeOnce": false
     },
     {
       "parameters": {
@@ -224,14 +84,17 @@
           "cachedResultName": "nam",
           "cachedResultUrl": "https://discord.com/channels/1010572533529059393/1483472250291228702"
         },
-        "content": "={{ (() => { const data = $json; const jobs = data.newJobs || []; let msg = `**Crawl lúc ${data.crawled_at}** — ${data.totalNew} job mới / ${data.totalCrawled} tổng\\n\\n`; jobs.forEach((j, i) => { msg += `**${i+1}. ${j.role || 'N/A'}**\\n`; msg += `> Cty: ${j.company || 'N/A'} | Nơi: ${j.location || 'N/A'} | Nguồn: ${j.source}\\n`; if (j.link) msg += `> Link: ${j.link}\\n`; const desc = (j.description || j.raw_post || '').substring(0, 200); if (desc) msg += `> ${desc}...\\n`; msg += '\\n'; }); return msg.substring(0, 2000); })() }}",
-        "options": {}
+        "content": "=Có {{ $json.totalNew }} job mới (tổng crawl: {{ $json.totalCrawled }})",
+        "options": {},
+        "embeds": {
+          "values": []
+        }
       },
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
       "position": [
-        -240,
-        -64
+        -416,
+        0
       ],
       "id": "8587f78f-4ca6-41da-956a-776f42e764cc",
       "name": "Send a message",
@@ -283,8 +146,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -528,
-        96
+        -640,
+        0
       ],
       "id": "fe5d7705-41e0-408f-9d75-5972a01f58ed",
       "name": "If",
@@ -316,11 +179,271 @@
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
       "position": [
-        -240,
-        336
+        -416,
+        192
       ],
       "id": "4fdbc9d6-32ca-43c8-bb5e-e1f1824f73b3",
       "name": "Send no new job",
+      "webhookId": "442d26b9-5902-4d8a-8681-4a94fe9a0584",
+      "credentials": {
+        "discordBotApi": {
+          "id": "VKfjjNzYtWHoTNVl",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "guildIds": [
+          "1010572533529059393"
+        ],
+        "channelIds": [
+          "1483472250291228702"
+        ],
+        "value": "!crawl",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-discord-trigger.discordTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1536,
+        -192
+      ],
+      "id": "53e92dd9-44cc-4d0f-a241-56b01b5fa8fa",
+      "name": "Discord Trigger",
+      "credentials": {
+        "discordBotTriggerApi": {
+          "id": "o300lsLkmXSrCOZb",
+          "name": "Discord Bot Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "guildIds": "1010572533529059393",
+        "channelId": "1483472250291228702",
+        "content": "Đã nhận được yêu cầu, đang crawl..."
+      },
+      "type": "n8n-nodes-discord-trigger.discordInteraction",
+      "typeVersion": 1,
+      "position": [
+        -1312,
+        -192
+      ],
+      "id": "c1dd2e15-2eb7-4598-b8e9-1ff430c7a928",
+      "name": "Discord Interaction",
+      "credentials": {
+        "discordBotTriggerApi": {
+          "id": "o300lsLkmXSrCOZb",
+          "name": "Discord Bot Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "3USJhhy60dNv4YfI",
+          "mode": "list",
+          "cachedResultName": "crawled_jobs",
+          "cachedResultUrl": "/projects/hB4HgQDKYavsOvHC/datatables/3USJhhy60dNv4YfI"
+        },
+        "matchType": "allConditions",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "job_id": "={{ $json.job_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "role",
+              "displayName": "role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "raw_post",
+              "displayName": "raw_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "crawled_at",
+              "displayName": "crawled_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -192,
+        -192
+      ],
+      "id": "24ff384b-13aa-4500-8c58-b4783d9eccfc",
+      "name": "Upsert row(s)",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "newJobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -192
+      ],
+      "id": "f5b2e1ef-63db-4438-b4da-110599b9eb03",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "1010572533529059393",
+          "mode": "list",
+          "cachedResultName": "Máy chủ của HNam",
+          "cachedResultUrl": "https://discord.com/channels/1010572533529059393"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1483472250291228702",
+          "mode": "list",
+          "cachedResultName": "nam",
+          "cachedResultUrl": "https://discord.com/channels/1010572533529059393/1483472250291228702"
+        },
+        "content": " ",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "title": "={{ $json.role || $json.job_id }}",
+              "description": "={{ ($json.description || $json.raw_post || '').substring(0, 300) }}",
+              "url": "={{ $json.link }}",
+              "color": "={{ $json.source === 'linkedin' ? 683202 : 1603570 }}",
+              "fields": {
+                "values": [
+                  {
+                    "name": "Company",
+                    "value": "={{ $json.company || 'N/A' }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Location",
+                    "value": "={{ $json.location || 'N/A' }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Source",
+                    "value": "={{ $json.source }}",
+                    "inline": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        0
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Send job embed",
       "webhookId": "442d26b9-5902-4d8a-8681-4a94fe9a0584",
       "credentials": {
         "discordBotApi": {
@@ -365,11 +488,6 @@
         ]
       ]
     },
-    "Upsert row(s)": {
-      "main": [
-        []
-      ]
-    },
     "When clicking ‘Execute workflow’": {
       "main": [
         [
@@ -385,12 +503,12 @@
       "main": [
         [
           {
-            "node": "Upsert row(s)",
+            "node": "Send a message",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Send a message",
+            "node": "Split Out",
             "type": "main",
             "index": 0
           }
@@ -403,15 +521,57 @@
           }
         ]
       ]
+    },
+    "Discord Trigger": {
+      "main": [
+        [
+          {
+            "node": "Call Crawler API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Discord Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Upsert row(s)": {
+      "main": [
+        []
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Upsert row(s)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send job embed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": false
+    "availableInMCP": true
   },
-  "versionId": "c01cad1e-f60b-400a-a2e2-5d46399d9610",
+  "versionId": "e5d88c74-987e-4aa2-ab82-3ac01716b475",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "b391716d7977ed936227d2d51116d6f87957374801474f882d8a0a1a1d9346a0"
