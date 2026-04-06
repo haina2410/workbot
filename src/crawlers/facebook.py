@@ -10,6 +10,8 @@ from src.logging import logger
 from src.llm import LLMClient
 from src.crawlers.base import BaseCrawler
 
+import math
+
 # Regex patterns that indicate a job posting (case-insensitive)
 JOB_PATTERNS = [
     r"tuy[ểể]n\s*d[ụu]ng",        # tuyển dụng
@@ -28,6 +30,11 @@ JOB_PATTERNS = [
     r"join\s+our\s+team",
     r"remote.*(position|role|job)",
     r"full[- ]?time|part[- ]?time|contract",
+]
+
+# Anti patterns
+ANTI_PATTERNS = [
+    r"tester",
 ]
 
 _JOB_REGEX = re.compile("|".join(JOB_PATTERNS), re.IGNORECASE)
@@ -219,8 +226,8 @@ class FacebookCrawler(BaseCrawler):
 
             if new_on_scroll == 0:
                 stagnant_rounds += 1
-                if stagnant_rounds >= 3:
-                    logger.info("No new posts after 3 scrolls, stopping")
+                if stagnant_rounds >= math.floor(max_scrolls*0.7):
+                    logger.info(f"No new posts after {max_scrolls*0.7} scrolls, stopping")
                     break
             else:
                 stagnant_rounds = 0

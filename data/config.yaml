@@ -16,6 +16,7 @@ facebook:
   group_urls:
     - "https://www.facebook.com/groups/ithotjobs.tuyendungit.vieclamcntt.susudev/?sorting_setting=CHRONOLOGICAL"
   target_posts: 10
+  max_pages: 20
   filter_remote_only: false
   max_jobs_per_run: 10
   use_llm: false
