@@ -569,7 +569,8 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "availableInMCP": true
+    "availableInMCP": true,
+    "maxConcurrentExecutions": 1
   },
   "versionId": "e5d88c74-987e-4aa2-ab82-3ac01716b475",
   "meta": {
