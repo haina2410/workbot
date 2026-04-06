@@ -5,7 +5,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data:/app/data
+      - /home/nam/composes/workbot/data:/app/data
     environment:
       - SELENIUM_URL=http://chrome:4444
     depends_on:
