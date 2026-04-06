@@ -5,6 +5,8 @@ from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 import yaml
 
 from src.logging import logger
@@ -37,7 +39,8 @@ def init_crawler_browser():
             raise RuntimeError(f"Failed to connect to remote browser: {e}")
     else:
         try:
-            driver = webdriver.Chrome(options=options)
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
             logger.debug("Local Chrome browser initialized")
             return driver
         except Exception as e:

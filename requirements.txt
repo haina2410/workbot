@@ -1,5 +1,6 @@
 openai>=1.37.0
 selenium>=4.9.1
+webdriver-manager>=4.0.2
 httpx~=0.27.2
 Levenshtein==0.25.1
 PyYAML>=6.0
