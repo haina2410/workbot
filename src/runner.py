@@ -20,11 +20,41 @@ from src.crawlers.facebook import FacebookCrawler
 SELENIUM_URL = os.environ.get("SELENIUM_URL", "")
 
 
+def _apply_stealth(driver):
+    """Apply anti-detection patches via CDP."""
+    try:
+        # Remove navigator.webdriver flag
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+                window.chrome = {runtime: {}};
+                const originalQuery = window.navigator.permissions.query;
+                window.navigator.permissions.query = (parameters) => (
+                    parameters.name === 'notifications' ?
+                        Promise.resolve({state: Notification.permission}) :
+                        originalQuery(parameters)
+                );
+            """
+        })
+        # Disable automation flags
+        driver.execute_cdp_cmd("Network.setUserAgentOverride", {
+            "userAgent": driver.execute_script("return navigator.userAgent").replace("HeadlessChrome", "Chrome")
+        })
+        logger.debug("Stealth patches applied")
+    except Exception as e:
+        logger.warning(f"Could not apply stealth patches: {e}")
+
+
 def init_crawler_browser():
     options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("window-size=1200,800")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
 
     if SELENIUM_URL:
         try:
@@ -33,6 +63,7 @@ def init_crawler_browser():
                 options=options,
             )
             logger.debug(f"Remote browser connected via {SELENIUM_URL}")
+            _apply_stealth(driver)
             return driver
         except Exception as e:
             logger.error(f"Failed to connect to remote browser at {SELENIUM_URL}: {e}")
@@ -42,6 +73,7 @@ def init_crawler_browser():
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=options)
             logger.debug("Local Chrome browser initialized")
+            _apply_stealth(driver)
             return driver
         except Exception as e:
             logger.error(f"Failed to start local Chrome: {e}")
