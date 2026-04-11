@@ -48,11 +48,14 @@ def _apply_stealth(driver):
 
 
 def init_crawler_browser():
+    headless = os.environ.get("HEADLESS", "").lower() in ("1", "true", "yes")
     options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("window-size=1200,800")
     options.add_argument("--disable-blink-features=AutomationControlled")
+    if headless:
+        options.add_argument("--headless=new")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
 

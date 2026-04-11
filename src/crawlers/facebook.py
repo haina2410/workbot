@@ -4,6 +4,7 @@ import re
 import time
 
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 from src.job import Job
 from src.logging import logger
@@ -221,7 +222,10 @@ class FacebookCrawler(BaseCrawler):
                     if text_key in seen_texts:
                         continue
                     seen_texts.add(text_key)
-                    post_url = self._extract_post_url(el)
+                    post_url, full_text = self._extract_post_url(el)
+                    # Use the full text from the dialog if available
+                    if full_text:
+                        text = full_text
                     posts.append({"text": text, "group_url": group_url, "post_url": post_url})
                     new_on_scroll += 1
                 except Exception:
@@ -247,26 +251,73 @@ class FacebookCrawler(BaseCrawler):
 
         return posts[:target_posts]
 
-    def _extract_post_url(self, post_element) -> str:
-        """Extract post permalink from the timestamp link near the post."""
+    def _extract_post_url(self, post_element) -> tuple[str, str]:
+        """Extract post permalink by clicking Comment to open the post dialog.
+
+        Returns (post_url, full_text) — full_text is the expanded post content
+        read from the dialog (no "Xem thêm" truncation).
+        """
+        original_url = self.driver.current_url
         try:
-            # Walk up to the post container (typically 5-8 levels up)
+            # Walk up to find the Comment button (aria-label="Viết bình luận", role="button")
             container = post_element
-            for _ in range(8):
+            comment_btn = None
+            for _ in range(10):
                 container = container.find_element(By.XPATH, "..")
-                # Look for timestamp links: href contains /posts/ or /permalink/
-                links = container.find_elements(
+                buttons = container.find_elements(
                     By.CSS_SELECTOR,
-                    'a[href*="/posts/"], a[href*="/permalink/"], a[href*="story_fbid"]'
+                    '[role="button"][aria-label="Viết bình luận"], '
+                    '[role="button"][aria-label="Write a comment"], '
+                    '[role="button"][aria-label="Leave a comment"]'
                 )
-                if links:
-                    href = links[0].get_attribute("href")
-                    if href:
-                        # Clean tracking params, keep the core URL
-                        return href.split("?")[0]
-        except Exception:
-            pass
-        return ""
+                if buttons:
+                    comment_btn = buttons[0]
+                    break
+
+            if not comment_btn:
+                logger.debug("Could not find Comment button for post")
+                return "", ""
+
+            # Click Comment to open the post dialog — URL changes to the post permalink
+            self.driver.execute_script("arguments[0].click();", comment_btn)
+            time.sleep(2)
+
+            post_url = self.driver.current_url
+            # Clean tracking params
+            post_url = post_url.split("?")[0]
+
+            # Read the full post text from the dialog (it shows expanded content)
+            full_text = ""
+            try:
+                dialog_post = self.driver.find_elements(
+                    By.CSS_SELECTOR,
+                    '[role="dialog"] div[data-ad-comet-preview="message"], '
+                    '[role="dialog"] div[data-ad-preview="message"]'
+                )
+                if dialog_post:
+                    full_text = dialog_post[0].text.strip()
+            except Exception:
+                pass
+
+            # Dismiss the dialog by pressing Escape
+            self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+            time.sleep(1)
+
+            # If the URL didn't change, the click didn't open a dialog
+            if post_url == original_url.split("?")[0]:
+                return "", full_text
+
+            return post_url, full_text
+        except Exception as e:
+            logger.debug(f"Failed to extract post URL via Comment click: {e}")
+            # Try to navigate back if we're stuck in a dialog
+            try:
+                if self.driver.current_url != original_url:
+                    self.driver.back()
+                    time.sleep(1)
+            except Exception:
+                pass
+            return "", ""
 
     def _expand_all_posts(self):
         try:

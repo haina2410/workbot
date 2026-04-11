@@ -3,37 +3,15 @@
   "nodes": [
     {
       "parameters": {
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "value": "3USJhhy60dNv4YfI",
-          "mode": "list",
-          "cachedResultName": "crawled_jobs",
-          "cachedResultUrl": "/projects/hB4HgQDKYavsOvHC/datatables/3USJhhy60dNv4YfI"
-        },
-        "returnAll": true
+        "jsCode": "// Dedup: filter out jobs already in Data Tables\nconst crawlResult = $('Call Crawler API1').first().json;\nconst existingJobs = $('Get row(s)').all().map(item => item.json.job_id);\nconst existingSet = new Set(existingJobs);\n\nconst newJobs = crawlResult.jobs.filter(j => !existingSet.has(j.job_id));\nnewJobs.forEach(i => i[\"crawled_at\"] = crawlResult.crawled_at)\nreturn [{ json: { newJobs, totalCrawled: crawlResult.total_jobs, totalNew: newJobs.length, crawled_at: crawlResult.crawled_at, existingSet: JSON.stringify(existingJobs) } }];"
       },
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        -1088,
-        0
-      ],
-      "id": "d56ba365-453e-4f07-8639-b3fbee5c7ee4",
-      "name": "Get row(s)",
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "jsCode": "// Dedup: filter out jobs already in Data Tables\nconst crawlResult = $('Call Crawler API').first().json;\nconst existingJobs = $('Get row(s)').all().map(item => item.json.job_id);\nconst existingSet = new Set(existingJobs);\n\nconst newJobs = crawlResult.jobs.filter(j => !existingSet.has(j.job_id));\nnewJobs.forEach(i => i[\"crawled_at\"] = crawlResult.crawled_at)\nreturn [{ json: { newJobs, totalCrawled: crawlResult.total_jobs, totalNew: newJobs.length, crawled_at: crawlResult.crawled_at } }];"
-      },
-      "id": "2f53fdd3-db38-4b0b-83d2-2c3602d9ecf9",
-      "name": "Dedup Against Data Tables",
+      "id": "1b5536df-512d-4fc8-9106-d06936029116",
+      "name": "Dedup Against Data Tables1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -864,
-        0
+        -992,
+        352
       ],
       "alwaysOutputData": false
     },
@@ -43,79 +21,24 @@
         "url": "http://jobs-crawler:8000/crawl",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-test",
-              "value": "true"
-            }
-          ]
+          "parameters": []
         },
         "options": {
           "timeout": 600000
         }
       },
-      "id": "51a57cf9-f995-48b7-9d0f-fe68eeefa421",
-      "name": "Call Crawler API",
+      "id": "edb277a5-b329-4530-a5f0-6b7f4084494d",
+      "name": "Call Crawler API1",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -1312,
-        0
+        -1440,
+        352
       ],
       "alwaysOutputData": true,
       "retryOnFail": false,
       "notesInFlow": false,
-      "executeOnce": false
-    },
-    {
-      "parameters": {
-        "resource": "message",
-        "guildId": {
-          "__rl": true,
-          "value": "1010572533529059393",
-          "mode": "list",
-          "cachedResultName": "Máy chủ của HNam",
-          "cachedResultUrl": "https://discord.com/channels/1010572533529059393"
-        },
-        "channelId": {
-          "__rl": true,
-          "value": "1483472250291228702",
-          "mode": "list",
-          "cachedResultName": "nam",
-          "cachedResultUrl": "https://discord.com/channels/1010572533529059393/1483472250291228702"
-        },
-        "content": "=Có {{ $json.totalNew }} job mới (tổng crawl: {{ $json.totalCrawled }})",
-        "options": {},
-        "embeds": {
-          "values": []
-        }
-      },
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
-      "position": [
-        -416,
-        0
-      ],
-      "id": "8587f78f-4ca6-41da-956a-776f42e764cc",
-      "name": "Send a message",
-      "webhookId": "442d26b9-5902-4d8a-8681-4a94fe9a0584",
-      "credentials": {
-        "discordBotApi": {
-          "id": "VKfjjNzYtWHoTNVl",
-          "name": "Discord Bot account"
-        }
-      }
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -1536,
-        96
-      ],
-      "id": "184926bf-8906-492c-af6f-6e2806bdc6e3",
-      "name": "When clicking ‘Execute workflow’"
+      "executeOnce": true
     },
     {
       "parameters": {
@@ -146,59 +69,22 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -640,
-        0
+        -768,
+        352
       ],
-      "id": "fe5d7705-41e0-408f-9d75-5972a01f58ed",
-      "name": "If",
+      "id": "47bba2f5-7483-44de-8b80-6feb102e9e14",
+      "name": "If1",
       "alwaysOutputData": false
     },
     {
       "parameters": {
-        "resource": "message",
-        "guildId": {
-          "__rl": true,
-          "value": "1010572533529059393",
-          "mode": "list",
-          "cachedResultName": "Máy chủ của HNam",
-          "cachedResultUrl": "https://discord.com/channels/1010572533529059393"
-        },
-        "channelId": {
-          "__rl": true,
-          "value": "1483472250291228702",
-          "mode": "list",
-          "cachedResultName": "nam",
-          "cachedResultUrl": "https://discord.com/channels/1010572533529059393/1483472250291228702"
-        },
-        "content": "=Crawl lúc: {{ $json.crawled_at }}. Có {{ $json.totalCrawled }} crawled nhưng có {{ $json.totalNew }} job mới",
-        "options": {},
-        "embeds": {
-          "values": []
-        }
-      },
-      "type": "n8n-nodes-base.discord",
-      "typeVersion": 2,
-      "position": [
-        -416,
-        192
-      ],
-      "id": "4fdbc9d6-32ca-43c8-bb5e-e1f1824f73b3",
-      "name": "Send no new job",
-      "webhookId": "442d26b9-5902-4d8a-8681-4a94fe9a0584",
-      "credentials": {
-        "discordBotApi": {
-          "id": "VKfjjNzYtWHoTNVl",
-          "name": "Discord Bot account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "guildIds": [
-          "1010572533529059393"
+          "1010572533529059393",
+          "1429040488958398598"
         ],
         "channelIds": [
-          "1483472250291228702"
+          "1483472250291228702",
+          "1485304146889408585"
         ],
         "value": "!crawl",
         "additionalFields": {}
@@ -206,32 +92,11 @@
       "type": "n8n-nodes-discord-trigger.discordTrigger",
       "typeVersion": 1,
       "position": [
-        -1536,
-        -192
+        -1664,
+        64
       ],
-      "id": "53e92dd9-44cc-4d0f-a241-56b01b5fa8fa",
-      "name": "Discord Trigger",
-      "credentials": {
-        "discordBotTriggerApi": {
-          "id": "o300lsLkmXSrCOZb",
-          "name": "Discord Bot Trigger account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "guildIds": "1010572533529059393",
-        "channelId": "1483472250291228702",
-        "content": "Đã nhận được yêu cầu, đang crawl..."
-      },
-      "type": "n8n-nodes-discord-trigger.discordInteraction",
-      "typeVersion": 1,
-      "position": [
-        -1312,
-        -192
-      ],
-      "id": "c1dd2e15-2eb7-4598-b8e9-1ff430c7a928",
-      "name": "Discord Interaction",
+      "id": "4ee00cd4-50e4-4a7e-9cac-0acf714ce47a",
+      "name": "Discord Trigger1",
       "credentials": {
         "discordBotTriggerApi": {
           "id": "o300lsLkmXSrCOZb",
@@ -250,6 +115,14 @@
           "cachedResultUrl": "/projects/hB4HgQDKYavsOvHC/datatables/3USJhhy60dNv4YfI"
         },
         "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "keyValue": "={{ $json.job_id }}"
+            }
+          ]
+        },
         "columns": {
           "mappingMode": "autoMapInputData",
           "value": {
@@ -366,12 +239,11 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        -192,
-        -192
+        -96,
+        256
       ],
-      "id": "24ff384b-13aa-4500-8c58-b4783d9eccfc",
-      "name": "Upsert row(s)",
-      "disabled": true
+      "id": "03efd905-8615-4196-a4e8-de3569af0eb9",
+      "name": "Upsert row(s)1"
     },
     {
       "parameters": {
@@ -381,57 +253,95 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        -416,
-        -192
+        -320,
+        352
       ],
-      "id": "f5b2e1ef-63db-4438-b4da-110599b9eb03",
-      "name": "Split Out"
+      "id": "5c3d144c-015c-4747-95fe-618f3b626332",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        496
+      ],
+      "id": "dbf33245-c238-44ef-994d-d6d001bb3ceb",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "3USJhhy60dNv4YfI",
+          "mode": "list",
+          "cachedResultName": "crawled_jobs",
+          "cachedResultUrl": "/projects/hB4HgQDKYavsOvHC/datatables/3USJhhy60dNv4YfI"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "condition": "isNotEmpty"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1216,
+        352
+      ],
+      "id": "3417e137-f5f7-47b7-bc01-c7d7c30bc4c6",
+      "name": "Get row(s)",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1664,
+        304
+      ],
+      "id": "c5d5b395-f676-49ff-9a0c-b7258a97bd27",
+      "name": "Schedule Trigger"
     },
     {
       "parameters": {
         "resource": "message",
         "guildId": {
           "__rl": true,
-          "value": "1010572533529059393",
-          "mode": "list",
-          "cachedResultName": "Máy chủ của HNam",
-          "cachedResultUrl": "https://discord.com/channels/1010572533529059393"
+          "value": "={{ $('Discord Trigger1').item.json.guildId }}",
+          "mode": "id"
         },
         "channelId": {
           "__rl": true,
-          "value": "1483472250291228702",
-          "mode": "list",
-          "cachedResultName": "nam",
-          "cachedResultUrl": "https://discord.com/channels/1010572533529059393/1483472250291228702"
+          "value": "={{ $('Discord Trigger1').item.json.channelId }}",
+          "mode": "id"
         },
         "content": " ",
         "options": {},
         "embeds": {
           "values": [
             {
-              "title": "={{ $json.role || $json.job_id }}",
               "description": "={{ ($json.description || $json.raw_post || '').substring(0, 300) }}",
-              "url": "={{ $json.link }}",
               "color": "={{ $json.source === 'linkedin' ? 683202 : 1603570 }}",
-              "fields": {
-                "values": [
-                  {
-                    "name": "Company",
-                    "value": "={{ $json.company || 'N/A' }}",
-                    "inline": true
-                  },
-                  {
-                    "name": "Location",
-                    "value": "={{ $json.location || 'N/A' }}",
-                    "inline": true
-                  },
-                  {
-                    "name": "Source",
-                    "value": "={{ $json.source }}",
-                    "inline": true
-                  }
-                ]
-              }
+              "title": "={{ $json.role || $json.job_id }}",
+              "url": "={{ $json.link }}"
             }
           ]
         }
@@ -439,11 +349,197 @@
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
       "position": [
-        -192,
-        0
+        -96,
+        448
       ],
-      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "id": "abb70c57-501c-40f0-b07c-5e84a6bfa660",
       "name": "Send job embed",
+      "webhookId": "442d26b9-5902-4d8a-8681-4a94fe9a0584",
+      "credentials": {
+        "discordBotApi": {
+          "id": "VKfjjNzYtWHoTNVl",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 0.5
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -544,
+        352
+      ],
+      "id": "7a52c32e-1b8b-4de5-a3b7-53065f4247c9",
+      "name": "Wait",
+      "webhookId": "2388df25-ee33-4dd2-aab7-679c796723ad"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9ab920ba-5f6f-4eb5-a8e8-8269a1f4f564",
+              "leftValue": "={{ $('Schedule Trigger').item.json.timestamp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -544,
+        64
+      ],
+      "id": "2514c4f3-361f-4c83-b47f-5e5cad57d1e6",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "={{ $json.guildId }}",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channelId }}",
+          "mode": "id"
+        },
+        "content": "=Đã nhận được yêu cầu từ <@{{ $json.authorId }}>, đang crawl...",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -1440,
+        16
+      ],
+      "id": "2998dd84-33c5-46ab-b043-9f8e4b39306a",
+      "name": "Send acknowledged message",
+      "webhookId": "fa170576-1681-40f3-b8e4-f4aa4a862440",
+      "credentials": {
+        "discordBotApi": {
+          "id": "VKfjjNzYtWHoTNVl",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "={{ $('Discord Trigger1').item.json.guildId }}",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Discord Trigger1').item.json.channelId }}",
+          "mode": "id"
+        },
+        "content": "=Có {{ $json.totalNew }} job mới (tổng crawl: {{ $json.totalCrawled }})",
+        "options": {},
+        "embeds": {
+          "values": []
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        160
+      ],
+      "id": "39c420fa-93d4-4252-940a-17cc02dce9f7",
+      "name": "Send normal report",
+      "webhookId": "442d26b9-5902-4d8a-8681-4a94fe9a0584",
+      "credentials": {
+        "discordBotApi": {
+          "id": "VKfjjNzYtWHoTNVl",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "={{ $('Discord Trigger1').item.json.guildId }}",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Discord Trigger1').item.json.channelId }}",
+          "mode": "id"
+        },
+        "content": "=Chào buổi sáng. Bảng job hôm nay: Có {{ $json.totalNew }} job mới (tổng crawl: {{ $json.totalCrawled }})",
+        "options": {},
+        "embeds": {
+          "values": []
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -32
+      ],
+      "id": "4d1674a5-7137-4cf9-b439-2dee3752116d",
+      "name": "Send morning report",
+      "webhookId": "442d26b9-5902-4d8a-8681-4a94fe9a0584",
+      "credentials": {
+        "discordBotApi": {
+          "id": "VKfjjNzYtWHoTNVl",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "={{ $('Discord Trigger1').item.json.guildId }}",
+          "mode": "id"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Discord Trigger1').item.json.channelId }}",
+          "mode": "id"
+        },
+        "content": "=Crawl lúc: {{ $json.crawled_at }}. Có {{ $json.totalCrawled }} crawled nhưng có {{ $json.totalNew }} job mới",
+        "options": {},
+        "embeds": {
+          "values": []
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        544
+      ],
+      "id": "b8a21c24-2aaa-48c7-be6e-c11df5e67147",
+      "name": "Send no new job",
       "webhookId": "442d26b9-5902-4d8a-8681-4a94fe9a0584",
       "credentials": {
         "discordBotApi": {
@@ -455,29 +551,18 @@
   ],
   "pinData": {},
   "connections": {
-    "Get row(s)": {
+    "Dedup Against Data Tables1": {
       "main": [
         [
           {
-            "node": "Dedup Against Data Tables",
+            "node": "If1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Dedup Against Data Tables": {
-      "main": [
-        [
-          {
-            "node": "If",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Call Crawler API": {
+    "Call Crawler API1": {
       "main": [
         [
           {
@@ -488,27 +573,16 @@
         ]
       ]
     },
-    "When clicking ‘Execute workflow’": {
+    "If1": {
       "main": [
         [
           {
-            "node": "Call Crawler API",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "If": {
-      "main": [
-        [
-          {
-            "node": "Send a message",
+            "node": "Wait",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Split Out",
+            "node": "If",
             "type": "main",
             "index": 0
           }
@@ -522,42 +596,99 @@
         ]
       ]
     },
-    "Discord Trigger": {
+    "Discord Trigger1": {
       "main": [
         [
           {
-            "node": "Call Crawler API",
+            "node": "Call Crawler API1",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Discord Interaction",
+            "node": "Send acknowledged message",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send a message": {
-      "main": [
-        []
-      ]
-    },
-    "Upsert row(s)": {
-      "main": [
-        []
-      ]
-    },
-    "Split Out": {
+    "Split Out1": {
       "main": [
         [
           {
-            "node": "Upsert row(s)",
+            "node": "Upsert row(s)1",
             "type": "main",
             "index": 0
           },
           {
             "node": "Send job embed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Call Crawler API1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Dedup Against Data Tables1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Call Crawler API1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send job embed": {
+      "main": [
+        []
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send morning report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send normal report",
             "type": "main",
             "index": 0
           }
@@ -570,9 +701,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate",
     "availableInMCP": true,
-    "maxConcurrentExecutions": 1
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "e5d88c74-987e-4aa2-ab82-3ac01716b475",
+  "versionId": "fd8dcce8-37fc-47db-a8b3-cd8a8e5e6ad4",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "b391716d7977ed936227d2d51116d6f87957374801474f882d8a0a1a1d9346a0"
